@@ -1,6 +1,6 @@
 # Privacy Prism — Synthetic Data Quality Lab
 
-A free-first, browser-only workbench for comparing an original CSV with a synthetic CSV across statistical utility, record similarity, and subgroup representation. The selected visual direction is **Privacy Prism**: a restrained graphite interface with an interactive WebGL crystal with flowing data ribbons, custom lighting, and analysis-reactive color. It uses native WebGL shaders and needs no 3D library or build step.
+A free-first, browser-only workbench for comparing an original CSV with a synthetic CSV across statistical utility, record similarity, and subgroup representation. The selected visual direction is **Privacy Prism**: a restrained graphite interface with an animated glass prism and flowing data ribbons.
 
 ## Run locally
 

@@ -163,8 +163,6 @@
     $('[data-mini-utility]').textContent = `${Math.round(r.utility * 100)}`;
     $('[data-mini-privacy]').textContent = `${Math.round(r.privacy.avgSimilarity * 100)}`;
     $('[data-mini-coverage]').textContent = r.coverage === null ? '—' : `${Math.round(r.coverage * 100)}`;
-    window.updatePrismScores?.({ utility: r.utility, risk: r.privacy.avgSimilarity, coverage: r.coverage ?? .5 });
-    $('[data-stage-status]').textContent = `ANALYSIS COMPLETE · ${r.shared.length} SHARED FEATURES`;
     $('[data-verdict-title]').textContent = r.privacy.avgSimilarity > .85 || r.privacy.exact ? 'Review close records.' : r.utility < .72 ? 'Look for lost patterns.' : 'Compare the trade-offs.';
     $('[data-verdict-copy]').textContent = `${r.shared.length} shared features were compared. Review the nearest-record screen and group distribution before using this synthetic dataset.`;
     $('[data-feature-snapshot]').innerHTML = r.features.slice(0, 6).map(f => `<div class="feature-row"><b title="${escapeHTML(f.key)}">${escapeHTML(f.key)}</b><span class="mini-bars"><i style="width:${f.match * 50}%"></i><em style="width:${f.match * 50}%"></em></span><span class="feature-drift">${Math.round(f.drift * 100)}% drift</span><span class="feature-drift">${Math.round(f.match * 100)}</span></div>`).join('');

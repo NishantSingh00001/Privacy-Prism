@@ -33,14 +33,21 @@
       <section class="view-panel is-visible" data-panel="overview">
         <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> SYNTHETIC DATA / EVALUATION WORKSPACE</div><h1>See the trade-offs.<br><em>Keep what matters.</em></h1><p class="intro">Source and synthetic data, read through utility, privacy signals, and group coverage.</p></div><div class="heading-note"><span>LOCAL ANALYSIS</span><b>Three lenses.<br>One decision.</b><small>Your files stay in this tab.</small></div></div>
 
-        <section class="prism-stage" aria-label="Interactive 3D visualization comparing source and synthetic data">
+        <section class="prism-stage" aria-label="Animated visualization comparing source and synthetic data">
           <div class="stage-caption"><span>01 — 03 &nbsp; / &nbsp; DATA RELATIONSHIP</span><span data-stage-status>DEMO COMPARISON · 8 SHARED FEATURES</span></div>
-          <div class="prism-layout">
-            <div class="scene-dataset source-dataset"><span class="dataset-kicker">01 / SOURCE</span><span class="scene-orbit source-orbit"><i></i><i></i><i></i></span><b data-source-name>Customer Records.csv</b><small data-source-meta>24 rows · 8 features</small><span class="scene-line source-line"></span></div>
-            <div class="prism-viewport"><canvas id="prismCanvas" aria-label="Animated glass prism with flowing source and synthetic data streams"></canvas><div class="prism-vignette"></div><div class="prism-readouts"><span>UTILITY <b data-mini-utility>—</b></span><i></i><span>SIMILARITY <b data-mini-privacy>—</b></span><i></i><span>GROUPS <b data-mini-coverage>—</b></span></div><div class="prism-controls"><span>DRAG TO ROTATE</span><button type="button" data-prism-motion aria-pressed="false">Ⅱ &nbsp; PAUSE</button></div><div class="webgl-fallback" data-prism-fallback hidden>3D view unavailable in this browser.<br><small>Your dataset analysis still works.</small></div></div>
-            <div class="scene-dataset synthetic-dataset"><span class="dataset-kicker">02 / SYNTHETIC</span><span class="scene-orbit synthetic-orbit"><i></i><i></i><i></i></span><b data-synthetic-name>Synthetic v1.csv</b><small data-synthetic-meta>24 rows · 8 features</small><span class="scene-line synthetic-line"></span></div>
+          <div class="prism-scene">
+            <div class="data-node node-source"><span></span><b data-source-name>Customer Records.csv</b><small data-source-meta>24 rows · 8 features</small></div>
+            <div class="stream stream-left"><i></i><i></i><i></i><i></i></div>
+            <div class="stream stream-right"><i></i><i></i><i></i><i></i></div>
+            <div class="beam beam-left"></div><div class="beam beam-right"></div>
+            <div class="glass-prism" aria-hidden="true"><div class="prism-face face-a"></div><div class="prism-face face-b"></div><div class="prism-face face-c"></div><div class="prism-core"></div><div class="prism-glint"></div></div>
+            <div class="prism-shadow"></div>
+            <div class="prism-label label-utility"><span>UTILITY</span><b data-mini-utility>—</b></div>
+            <div class="prism-label label-privacy"><span>SIMILARITY</span><b data-mini-privacy>—</b></div>
+            <div class="prism-label label-coverage"><span>GROUPS</span><b data-mini-coverage>—</b></div>
+            <div class="data-node node-synthetic"><span></span><b data-synthetic-name>Synthetic v1.csv</b><small data-synthetic-meta>24 rows · 8 features</small></div>
           </div>
-          <div class="stage-bottom"><span><i class="legend-source"></i> SOURCE SIGNAL</span><span><i class="legend-synthetic"></i> SYNTHETIC SIGNAL</span><button class="text-link" data-view-link="data">CHANGE DATASETS <b>↗</b></button><span class="stage-note">SIMILARITY IS A SCREEN, NOT A PRIVACY GUARANTEE</span></div>
+          <div class="stage-legend"><span><i></i> SOURCE SIGNAL</span><span><i class="legend-synthetic"></i> SYNTHETIC SIGNAL</span><button class="text-link" data-view-link="data">CHANGE DATASETS <b>↗</b></button><span class="legend-note">SIMILARITY IS A SCREEN, NOT A PRIVACY GUARANTEE</span></div>
         </section>
 
         <div class="score-grid">
@@ -85,7 +92,6 @@
     </main>
   </div>
   <div class="toast" data-toast role="status" aria-live="polite"></div>
-  <script src="prism.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
