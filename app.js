@@ -1,281 +1,77 @@
 (() => {
-  const $ = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-  const state = { source: [], synthetic: [], sourceName: 'Customer Records.csv', syntheticName: 'Synthetic v1.csv', results: null, features: [] };
-  const viewNames = { overview: 'OVERVIEW', utility: 'UTILITY', privacy: 'PRIVACY RISK', coverage: 'SUBGROUP COVERAGE', data: 'DATASETS', method: 'METHOD & LIMITS' };
+  'use strict';
+  const $ = (s, root = document) => root.querySelector(s);
+  const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+  const state = { source: [], synthetic: [], sourceName: 'Customer Records.csv', syntheticName: 'Synthetic v1.csv', result: null, proxy: null, inference: null };
+  const num = (v) => Number.isFinite(Number(v)) && v !== '' && v !== null ? Number(v) : null;
+  const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+  const mean = a => a.length ? a.reduce((x,y)=>x+y,0)/a.length : 0;
+  const median = a => { const x=[...a].sort((p,q)=>p-q); return x.length ? x[Math.floor(x.length/2)] : 0; };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const pct = n => `${Math.round(n)}%`;
+  const fmt = n => Number.isFinite(n) ? (Math.abs(n)>=1000 ? n.toLocaleString(undefined,{maximumFractionDigits:1}) : Number(n.toFixed(2)).toString()) : '—';
   const demoSource = [
-    ['age','region','plan','monthly_spend','visits_30d','tenure_months','support_tickets','device'],
-    [22,'North','Basic',420,8,4,3,'Android'],[29,'West','Plus',980,16,18,1,'iOS'],[35,'Central','Basic',640,11,30,2,'Android'],[41,'East','Premium',1850,23,48,0,'iOS'],[53,'West','Plus',1120,14,66,1,'Android'],[31,'South','Basic',540,9,22,4,'Web'],[27,'North','Plus',875,18,12,1,'Android'],[46,'Central','Premium',1640,21,57,0,'iOS'],[38,'East','Plus',1040,15,39,2,'Web'],[24,'South','Basic',390,7,7,3,'Android'],[58,'West','Premium',2100,24,84,0,'iOS'],[33,'North','Plus',920,17,27,1,'Web'],[44,'Central','Basic',720,10,53,2,'Android'],[26,'East','Basic',470,8,10,5,'Android'],[49,'South','Premium',1760,22,70,1,'iOS'],[37,'West','Plus',1190,19,35,2,'Web'],[61,'North','Premium',1980,20,93,0,'iOS'],[28,'Central','Basic',510,9,15,3,'Android'],[42,'East','Plus',1070,16,50,1,'Web'],[34,'South','Plus',940,15,29,2,'Android'],[56,'West','Premium',2240,25,78,0,'iOS'],[30,'North','Basic',590,12,20,4,'Web'],[47,'Central','Plus',1280,18,62,1,'Android'],[39,'East','Premium',1580,20,43,0,'iOS']
+    ['age','region','plan','monthly_spend','visits','tenure_months','support_tickets','device','churn'],
+    [24,'Thane','Basic',899,5,8,1,'Android','No'],[31,'Mumbai','Plus',1599,9,22,0,'iOS','No'],[42,'Navi Mumbai','Basic',999,4,35,2,'Android','Yes'],[28,'Thane','Pro',2499,12,14,0,'iOS','No'],[36,'Mumbai','Plus',1699,7,28,1,'Android','No'],[51,'Thane','Basic',799,3,46,3,'Web','Yes'],[23,'Kalyan','Basic',899,6,5,0,'Android','No'],[39,'Mumbai','Pro',2699,11,31,0,'iOS','No'],[33,'Navi Mumbai','Plus',1499,8,19,1,'Web','No'],[46,'Thane','Basic',1099,4,39,2,'Android','Yes'],[29,'Kalyan','Plus',1799,10,12,0,'iOS','No'],[55,'Mumbai','Basic',899,2,52,4,'Web','Yes'],[26,'Thane','Plus',1599,7,11,1,'Android','No'],[41,'Navi Mumbai','Pro',2799,13,33,0,'iOS','No'],[34,'Mumbai','Basic',999,6,24,2,'Web','No'],[48,'Kalyan','Plus',1699,5,42,3,'Android','Yes'],[22,'Thane','Basic',799,6,4,0,'Android','No'],[37,'Mumbai','Pro',2599,10,27,1,'iOS','No'],[30,'Navi Mumbai','Plus',1499,8,17,0,'Web','No'],[44,'Thane','Basic',999,3,37,2,'Android','Yes'],[27,'Kalyan','Plus',1799,9,9,1,'iOS','No'],[50,'Mumbai','Basic',899,4,48,3,'Web','Yes'],[35,'Thane','Pro',2399,11,25,0,'Android','No'],[40,'Navi Mumbai','Plus',1699,7,30,1,'iOS','No']
   ];
   const demoSynthetic = [
-    ['age','region','plan','monthly_spend','visits_30d','tenure_months','support_tickets','device'],
-    [23,'North','Basic',450,9,5,2,'Android'],[30,'West','Plus',940,15,19,1,'iOS'],[36,'Central','Basic',670,12,31,2,'Android'],[40,'East','Premium',1770,21,46,1,'iOS'],[51,'West','Plus',1080,14,64,2,'Android'],[32,'South','Basic',580,10,23,3,'Web'],[28,'North','Plus',900,17,13,2,'Android'],[45,'Central','Premium',1590,20,56,1,'iOS'],[39,'East','Plus',1110,16,40,2,'Web'],[25,'South','Basic',430,8,8,4,'Android'],[55,'West','Premium',1950,23,79,1,'iOS'],[34,'North','Plus',960,18,28,2,'Web'],[43,'Central','Basic',750,11,52,2,'Android'],[27,'East','Basic',490,9,11,4,'Android'],[48,'South','Premium',1690,21,69,2,'iOS'],[38,'West','Plus',1160,18,36,2,'Web'],[58,'North','Premium',1880,21,90,1,'iOS'],[29,'Central','Basic',550,10,16,3,'Android'],[41,'East','Plus',1130,17,51,2,'Web'],[35,'South','Plus',970,14,30,3,'Android'],[53,'West','Premium',2040,24,76,1,'iOS'],[31,'North','Basic',620,12,21,3,'Web'],[46,'Central','Plus',1250,19,61,2,'Android'],[40,'East','Premium',1530,19,44,1,'iOS']
+    ['age','region','plan','monthly_spend','visits','tenure_months','support_tickets','device','churn'],
+    [25,'Thane','Basic',949,6,9,1,'Android','No'],[32,'Mumbai','Plus',1649,8,23,0,'iOS','No'],[43,'Navi Mumbai','Basic',1049,5,34,2,'Android','Yes'],[29,'Thane','Pro',2449,11,15,0,'iOS','No'],[37,'Mumbai','Plus',1749,8,27,1,'Android','No'],[52,'Thane','Basic',849,4,45,3,'Web','Yes'],[24,'Kalyan','Basic',949,6,6,0,'Android','No'],[40,'Mumbai','Pro',2649,10,32,0,'iOS','No'],[34,'Navi Mumbai','Plus',1549,7,20,1,'Web','No'],[47,'Thane','Basic',1149,5,38,2,'Android','Yes'],[30,'Kalyan','Plus',1849,9,13,0,'iOS','No'],[56,'Mumbai','Basic',949,3,51,4,'Web','Yes'],[27,'Thane','Plus',1649,8,12,1,'Android','No'],[42,'Navi Mumbai','Pro',2749,12,34,0,'iOS','No'],[35,'Mumbai','Basic',1049,6,23,2,'Web','No'],[49,'Kalyan','Plus',1749,6,41,3,'Android','Yes'],[23,'Thane','Basic',849,7,5,0,'Android','No'],[38,'Mumbai','Pro',2549,10,28,1,'iOS','No'],[31,'Navi Mumbai','Plus',1549,9,18,0,'Web','No'],[45,'Thane','Basic',1049,4,36,2,'Android','Yes'],[28,'Kalyan','Plus',1849,10,10,1,'iOS','No'],[51,'Mumbai','Basic',949,4,47,3,'Web','Yes'],[36,'Thane','Pro',2349,12,26,0,'Android','No'],[41,'Navi Mumbai','Plus',1749,8,29,1,'iOS','No']
   ];
-
-  function rowsFromMatrix(matrix) {
-    const headers = matrix[0];
-    return matrix.slice(1).map(row => Object.fromEntries(headers.map((h, i) => [h, row[i]])));
+  function rowsFrom(matrix){ const headers=matrix[0].map(x=>String(x??'').trim()); return matrix.slice(1).filter(r=>r.some(v=>String(v??'').trim()!=='')).map(r=>Object.fromEntries(headers.map((h,i)=>[h,parseValue(r[i])]))); }
+  function parseValue(v){ if(v===undefined||v===null||String(v).trim()==='') return null; const s=String(v).trim(); if(/^[-+]?\d+(\.\d+)?$/.test(s)) return Number(s); return s; }
+  function loadDemo(){ state.source=rowsFrom(demoSource); state.synthetic=rowsFrom(demoSynthetic); state.sourceName='Customer Records.csv'; state.syntheticName='Synthetic v1.csv'; state.result=null; state.proxy=null; state.inference=null; setText('[data-file-name="source"]',`${state.sourceName} · demo`); setText('[data-file-name="synthetic"]',`${state.syntheticName} · demo`); runAll(); toast('Sample pair loaded. All analysis runs in this tab.'); }
+  function setText(sel, value){ $$(sel).forEach(e=>e.textContent=value); }
+  function headers(rows){ return rows.length ? Object.keys(rows[0]) : []; }
+  function shared(){ const b=new Set(headers(state.synthetic)); return headers(state.source).filter(k=>b.has(k)); }
+  function identifier(k){ return /(^|[_\s-])(id|uuid|email|phone|mobile|ssn|passport|account)([_\s-]|$)/i.test(k)||/email|phone|mobile/i.test(k); }
+  function values(rows,k){ return rows.map(r=>r[k]).filter(v=>v!==null&&v!==undefined&&String(v).trim()!==''); }
+  function kind(k){ const v=values([...state.source,...state.synthetic],k); if(!v.length)return 'empty'; const n=v.filter(x=>num(x)!==null).length; if(n/v.length>=.8)return 'numeric'; const d=v.filter(x=>!Number.isNaN(Date.parse(x))).length; if(d/v.length>=.8)return 'date'; return 'category'; }
+  function numericValues(rows,k){return values(rows,k).map(Number).filter(Number.isFinite);}
+  function categorical(rows,k){const m=new Map(); values(rows,k).forEach(v=>m.set(String(v),(m.get(String(v))||0)+1));return m;}
+  function ks(a,b){if(!a.length||!b.length)return 1; const all=[...new Set([...a,...b])].sort((x,y)=>x-y); let i=0,j=0,d=0; for(const x of all){while(i<a.length&&a[i]<=x)i++;while(j<b.length&&b[j]<=x)j++;d=Math.max(d,Math.abs(i/a.length-j/b.length));}return d;}
+  function tvd(rowsA,rowsB,key){const A=categorical(rowsA,key),B=categorical(rowsB,key);const keys=new Set([...A.keys(),...B.keys()]);let sum=0;keys.forEach(k=>sum+=Math.abs((A.get(k)||0)/Math.max(1,values(rowsA,key).length)-(B.get(k)||0)/Math.max(1,values(rowsB,key).length)));return sum/2;}
+  function fieldMetrics(k){ const type=kind(k); let drift=0,score=0; if(type==='numeric'||type==='date'){let a=numericValues(state.source,k),b=numericValues(state.synthetic,k);if(type==='date'){a=values(state.source,k).map(Date.parse).filter(Number.isFinite);b=values(state.synthetic,k).map(Date.parse).filter(Number.isFinite);} drift=ks(a,b); const ma=mean(a),mb=mean(b),sd=Math.sqrt(mean(a.map(x=>(x-ma)**2)));const meanDrift=sd?Math.abs(ma-mb)/sd:(ma===mb?0:1);score=100*(.65*(1-drift)+.35*(1-clamp(meanDrift,0,1)));}else{drift=tvd(state.source,state.synthetic,k);score=100*(1-drift);} return {key:k,type,drift:clamp(drift*100),score:clamp(score),nSource:values(state.source,k).length,nSynthetic:values(state.synthetic,k).length}; }
+  function nonIdFields(){return shared().filter(k=>!identifier(k));}
+  function distance(a,b,fields){let sum=0,n=0;for(const k of fields){const x=a[k],y=b[k];if(x==null||y==null)continue;const t=kind(k);let d;if(t==='numeric'||t==='date'){let all=t==='date'?values(state.source,k).map(Date.parse).filter(Number.isFinite):numericValues(state.source,k);const xx=t==='date'?Date.parse(x):Number(x),yy=t==='date'?Date.parse(y):Number(y);const span=Math.max(1,Math.max(...all,0)-Math.min(...all,0));d=Math.min(1,Math.abs(xx-yy)/span);}else d=String(x)===String(y)?0:1;sum+=d;n++;}return n?sum/n:1;}
+  function correlation(a,b){if(a.length<3||b.length<3)return 0;const n=Math.min(a.length,b.length),ma=mean(a),mb=mean(b);let cov=0,va=0,vb=0;for(let i=0;i<n;i++){cov+=(a[i]-ma)*(b[i]-mb);va+=(a[i]-ma)**2;vb+=(b[i]-mb)**2;}return va&&vb?cov/Math.sqrt(va*vb):0;}
+  function pairwise(){const ns=shared().filter(k=>kind(k)==='numeric');const out=[];for(let i=0;i<ns.length;i++)for(let j=i+1;j<ns.length;j++){const a=state.source.filter(r=>num(r[ns[i]])!==null&&num(r[ns[j]])!==null),b=state.synthetic.filter(r=>num(r[ns[i]])!==null&&num(r[ns[j]])!==null);if(a.length<3||b.length<3)continue;const c1=correlation(a.map(r=>+r[ns[i]]),a.map(r=>+r[ns[j]])),c2=correlation(b.map(r=>+r[ns[i]]),b.map(r=>+r[ns[j]]));out.push({a:ns[i],b:ns[j],source:c1,synthetic:c2,delta:Math.abs(c1-c2)});}return out.sort((x,y)=>y.delta-x.delta);}
+  function diagnostics(){const hs=headers(state.source),ht=headers(state.synthetic),setT=new Set(ht),setS=new Set(hs),all=[...new Set([...hs,...ht])];const typeDiff=shared().filter(k=>kind(k)==='numeric'&&[...values(state.source,k),...values(state.synthetic,k)].some(v=>typeof v==='string')).length;const missingCols=all.filter(k=>!setS.has(k)||!setT.has(k));const schemaScore=all.length?100*(1-(missingCols.length/Math.max(1,all.length))):0;const miss=shared().map(k=>{const x=1-values(state.source,k).length/Math.max(1,state.source.length),y=1-values(state.synthetic,k).length/Math.max(1,state.synthetic.length);return {key:k,source:x,synthetic:y,delta:Math.abs(x-y)};});const missingScore=100*(1-mean(miss.map(x=>x.delta)));const shapes=shared().filter(k=>!identifier(k)).map(fieldMetrics);const shapeScore=mean(shapes.map(x=>x.score));const corr=pairwise(),correlationScore=corr.length?100*(1-mean(corr.map(x=>x.delta/2))):100;
+    const bounds=[];for(const k of shared()){if(identifier(k))continue;if(kind(k)==='numeric'){const a=numericValues(state.source,k),lo=Math.min(...a),hi=Math.max(...a),out=numericValues(state.synthetic,k).filter(x=>x<lo||x>hi);bounds.push({key:k,out:out.length,total:values(state.synthetic,k).length,detail:out.length?`${out.length} outside ${fmt(lo)}–${fmt(hi)}`:'within source range'});}else if(kind(k)==='category'){const known=new Set(values(state.source,k).map(String)),novel=values(state.synthetic,k).filter(v=>!known.has(String(v)));if(novel.length)bounds.push({key:k,out:novel.length,total:values(state.synthetic,k).length,detail:`${novel.length} unseen category value(s)`});}}
+    const boundsTotal=bounds.reduce((a,x)=>a+x.total,0),boundsBad=bounds.reduce((a,x)=>a+x.out,0),boundsScore=boundsTotal?100*(1-boundsBad/boundsTotal):100;
+    const dupS=duplicateCount(state.source),dupT=duplicateCount(state.synthetic);const integrityScore=100*(1-(dupS+dupT)/Math.max(1,state.source.length+state.synthetic.length));return {schemaScore,missingScore,miss,shapes,shapeScore,corr,correlationScore,bounds,boundsScore,dupS,dupT,integrityScore,missingCols,typeDiff};
   }
-  function loadDemo() {
-    state.source = rowsFromMatrix(demoSource);
-    state.synthetic = rowsFromMatrix(demoSynthetic);
-    state.sourceName = 'Customer Records.csv';
-    state.syntheticName = 'Synthetic v1.csv';
-    $('[data-file-name="source"]').textContent = `${state.sourceName} · demo`;
-    $('[data-file-name="synthetic"]').textContent = `${state.syntheticName} · demo`;
-    syncDatasetLabels();
-    runAnalysis(true);
-    notify('Sample datasets loaded. Try a view in the left rail.');
-  }
-  function syncDatasetLabels() {
-    const shared = getSharedColumns();
-    $('[data-source-name]').textContent = state.sourceName;
-    $('[data-synthetic-name]').textContent = state.syntheticName;
-    $('[data-source-meta]').textContent = `${state.source.length.toLocaleString()} rows · ${Object.keys(state.source[0] || {}).length} features`;
-    $('[data-synthetic-meta]').textContent = `${state.synthetic.length.toLocaleString()} rows · ${Object.keys(state.synthetic[0] || {}).length} features`;
-    $('[data-schema-state]').textContent = shared.length ? `${shared.length} SHARED` : 'NO MATCH';
-    $('[data-schema-list]').innerHTML = shared.length ? shared.map(k => `<span class="schema-chip is-shared">✓ ${escapeHTML(k)}</span>`).join('') : '<span class="schema-chip is-missing">No shared column names found yet.</span>';
-    const sourceKeys = new Set(Object.keys(state.source[0] || {}));
-    Object.keys(state.synthetic[0] || {}).filter(k => !sourceKeys.has(k)).forEach(k => $('[data-schema-list]').insertAdjacentHTML('beforeend', `<span class="schema-chip is-missing">+ ${escapeHTML(k)} · synthetic only</span>`));
-    populateFeatureControls();
-  }
-  function getSharedColumns() {
-    const a = Object.keys(state.source[0] || {}), b = new Set(Object.keys(state.synthetic[0] || {}));
-    return a.filter(k => b.has(k));
-  }
-  function escapeHTML(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
-  function parseCSV(text) {
-    const input = text.replace(/^\uFEFF/, '');
-    const matrix = []; let row = [], field = '', quoted = false;
-    for (let i = 0; i < input.length; i++) {
-      const c = input[i];
-      if (quoted) {
-        if (c === '"' && input[i + 1] === '"') { field += '"'; i++; }
-        else if (c === '"') quoted = false;
-        else field += c;
-      } else if (c === '"' && field.length === 0) quoted = true;
-      else if (c === ',') { row.push(field); field = ''; }
-      else if (c === '\n' || c === '\r') {
-        if (c === '\r' && input[i + 1] === '\n') i++;
-        row.push(field); field = '';
-        if (row.some(v => String(v).trim() !== '')) matrix.push(row);
-        row = [];
-      } else field += c;
-    }
-    row.push(field); if (row.some(v => String(v).trim() !== '')) matrix.push(row);
-    if (quoted) throw new Error('This CSV has an unclosed quoted value.');
-    if (matrix.length < 2) throw new Error('This CSV needs a header row and at least one data row.');
-    const headers = matrix[0].map((h, i) => String(h).trim() || `column_${i + 1}`);
-    if (new Set(headers).size !== headers.length) throw new Error('Column names must be unique.');
-    return matrix.slice(1).map(cells => Object.fromEntries(headers.map((h, i) => [h, parseCell(cells[i] ?? '')])));
-  }
-  function parseCell(value) {
-    const v = String(value).trim(); if (!v) return null;
-    const normalized = v.replace(/,/g, '');
-    if (/^-?(?:\d+\.?\d*|\.\d+)$/.test(normalized)) return Number(normalized);
-    return v;
-  }
-  function isNumericFeature(rows, key) {
-    const values = rows.map(r => r[key]).filter(v => v !== null && v !== undefined && v !== '');
-    return values.length > 0 && values.filter(v => typeof v === 'number' && Number.isFinite(v)).length / values.length >= .8;
-  }
-  function featureType(key) { return isNumericFeature(state.source, key) && isNumericFeature(state.synthetic, key) ? 'numeric' : 'category'; }
-  function mean(values) { return values.reduce((a, b) => a + b, 0) / (values.length || 1); }
-  function deviation(values, avg = mean(values)) { return Math.sqrt(mean(values.map(v => (v - avg) ** 2))); }
-  function frequencies(rows, key) {
-    const counts = new Map(); let n = 0;
-    rows.forEach(r => { const val = r[key]; if (val === null || val === undefined || val === '') return; const k = String(val); counts.set(k, (counts.get(k) || 0) + 1); n++; });
-    return { counts, n, proportions: new Map([...counts].map(([k, v]) => [k, v / (n || 1)])) };
-  }
-  function compareFeature(key) {
-    const type = featureType(key);
-    if (type === 'numeric') {
-      const a = state.source.map(r => r[key]).filter(Number.isFinite), b = state.synthetic.map(r => r[key]).filter(Number.isFinite);
-      const ma = mean(a), mb = mean(b), sa = deviation(a, ma), sb = deviation(b, mb);
-      const scale = Math.max(sa, Math.abs(ma) * .05, 1e-6);
-      const meanDelta = Math.abs(ma - mb) / scale, spreadDelta = Math.abs(sa - sb) / Math.max(sa, Math.abs(ma) * .05, 1e-6);
-      const match = clamp(1 - (.7 * Math.min(1, meanDelta) + .3 * Math.min(1, spreadDelta)), 0, 1);
-      return { key, type, match, drift: 1 - match, sourceSummary: `${fmt(ma)} ± ${fmt(sa)}`, syntheticSummary: `${fmt(mb)} ± ${fmt(sb)}`, sourceValues: a, syntheticValues: b };
-    }
-    const a = frequencies(state.source, key), b = frequencies(state.synthetic, key), keys = new Set([...a.counts.keys(), ...b.counts.keys()]);
-    const tvd = [...keys].reduce((sum, k) => sum + Math.abs((a.proportions.get(k) || 0) - (b.proportions.get(k) || 0)), 0) / 2;
-    const sourceMode = [...a.counts].sort((x, y) => y[1] - x[1])[0]?.[0] ?? '—';
-    const synMode = [...b.counts].sort((x, y) => y[1] - x[1])[0]?.[0] ?? '—';
-    return { key, type, match: clamp(1 - tvd, 0, 1), drift: tvd, sourceSummary: sourceMode, syntheticSummary: synMode, sourceFreq: a.proportions, syntheticFreq: b.proportions, categories: [...keys] };
-  }
-  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
-  function fmt(n) { return Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 }); }
-  function sampleRows(rows, max = 300) {
-    if (rows.length <= max) return rows;
-    const step = (rows.length - 1) / (max - 1); return Array.from({ length: max }, (_, i) => rows[Math.round(i * step)]);
-  }
-  function recordKey(row, cols) { return cols.map(k => String(row[k] ?? '').trim().toLowerCase()).join('\u001f'); }
-  function privacyScreen(cols) {
-    const source = sampleRows(state.source), synthetic = sampleRows(state.synthetic);
-    const sourceKeys = new Set(source.map(r => recordKey(r, cols)));
-    const exact = synthetic.filter(r => sourceKeys.has(recordKey(r, cols))).length;
-    const numeric = cols.filter(k => featureType(k) === 'numeric');
-    const ranges = Object.fromEntries(numeric.map(k => { const vals = state.source.map(r => r[k]).filter(Number.isFinite); return [k, Math.max(...vals) - Math.min(...vals) || 1]; }));
-    const scores = synthetic.map(s => {
-      let nearest = 0;
-      source.forEach(o => {
-        let distance = 0, dimensions = 0;
-        cols.forEach(k => {
-          const x = s[k], y = o[k]; if (x === null || y === null || x === undefined || y === undefined) return;
-          dimensions++;
-          distance += featureType(k) === 'numeric' ? Math.min(1, Math.abs(Number(x) - Number(y)) / ranges[k]) : (String(x).toLowerCase() === String(y).toLowerCase() ? 0 : 1);
-        });
-        if (dimensions) nearest = Math.max(nearest, 1 - distance / dimensions);
-      });
-      return nearest;
-    });
-    return { exact, screened: synthetic.length, sourceScreened: source.length, avgSimilarity: mean(scores), highSimilarity: scores.filter(s => s >= .85).length };
-  }
-  function runAnalysis(quiet = false) {
-    if (!state.source.length || !state.synthetic.length) { notify('Add both datasets before running an analysis.'); return; }
-    const shared = getSharedColumns();
-    if (!shared.length) { notify('The two files need at least one column name in common.'); return; }
-    const runState = $('[data-run-state]'); runState.classList.add('is-working'); runState.innerHTML = '<i></i> ANALYZING';
-    requestAnimationFrame(() => {
-      try {
-        state.features = shared.map(compareFeature);
-        const utility = mean(state.features.map(f => f.match));
-        const privacy = privacyScreen(shared);
-        const categorical = state.features.filter(f => f.type === 'category');
-        const coverage = categorical.length ? mean(categorical.map(f => f.match)) : null;
-        state.results = { utility, privacy, coverage, features: state.features, shared, sourceRows: state.source.length, syntheticRows: state.synthetic.length, timestamp: new Date().toISOString() };
-        paintResults();
-        runState.classList.remove('is-working'); runState.innerHTML = '<i></i> ANALYSIS READY';
-        $('[data-stage-status]').textContent = `COMPARISON COMPLETE · ${shared.length} SHARED FEATURES`;
-        if (!quiet) notify('Analysis complete. Explore utility, privacy, or coverage.');
-      } catch (err) {
-        console.error(err); runState.classList.remove('is-working'); runState.innerHTML = '<i></i> CHECK DATA'; notify(`Could not analyze these files: ${err.message}`);
-      }
-    });
-  }
-  function paintResults() {
-    const r = state.results; if (!r) return;
-    setScore('utility', r.utility, 'Pattern similarity');
-    const privacyScore = clamp(r.privacy.avgSimilarity * .7 + (r.privacy.exact / Math.max(1, r.privacy.screened)) * .3, 0, 1);
-    setScore('privacy', privacyScore, r.privacy.avgSimilarity > .85 ? 'High similarity · review' : 'Similarity screen only');
-    if (r.coverage === null) { $('[data-score-coverage]').innerHTML = 'N/A'; $('[data-score-bar="coverage"]').style.width = '0'; $('[data-score-coverage-label]').textContent = 'No categorical fields detected'; }
-    else setScore('coverage', r.coverage, 'Category proportion match');
-    $('[data-mini-utility]').textContent = `${Math.round(r.utility * 100)}`;
-    $('[data-mini-privacy]').textContent = `${Math.round(r.privacy.avgSimilarity * 100)}`;
-    $('[data-mini-coverage]').textContent = r.coverage === null ? '—' : `${Math.round(r.coverage * 100)}`;
-    $('[data-verdict-title]').textContent = r.privacy.avgSimilarity > .85 || r.privacy.exact ? 'Review close records.' : r.utility < .72 ? 'Look for lost patterns.' : 'Compare the trade-offs.';
-    $('[data-verdict-copy]').textContent = `${r.shared.length} shared features were compared. Review the nearest-record screen and group distribution before using this synthetic dataset.`;
-    $('[data-feature-snapshot]').innerHTML = r.features.slice(0, 6).map(f => `<div class="feature-row"><b title="${escapeHTML(f.key)}">${escapeHTML(f.key)}</b><span class="mini-bars"><i style="width:${f.match * 50}%"></i><em style="width:${f.match * 50}%"></em></span><span class="feature-drift">${Math.round(f.drift * 100)}% drift</span><span class="feature-drift">${Math.round(f.match * 100)}</span></div>`).join('');
-    const privacyPct = Math.round(r.privacy.avgSimilarity * 100);
-    $('[data-near-match]').innerHTML = `${privacyPct}<small>%</small>`;
-    const level = $('[data-privacy-level]'); level.className = `pill ${privacyPct >= 85 ? 'is-high' : privacyPct >= 65 ? 'is-review' : 'is-low'}`; level.textContent = privacyPct >= 85 ? 'REVIEW CLOSE MATCHES' : privacyPct >= 65 ? 'MODERATE SIMILARITY' : 'LOWER SIMILARITY';
-    $('[data-exact-matches]').textContent = `${r.privacy.exact} / ${r.privacy.screened}`;
-    $('[data-screen-count]').textContent = `${r.privacy.sourceScreened} × ${r.privacy.screened}`;
-    $('[data-screen-features]').textContent = r.shared.length;
-    $('[data-privacy-list]').innerHTML = `<div class="privacy-result-row"><span>Exact source-row overlap</span><b>${(100 * r.privacy.exact / Math.max(1, r.privacy.screened)).toFixed(1)}%</b><b>${r.privacy.exact} sampled records</b></div><div class="privacy-result-row"><span>Rows with similarity ≥ 85%</span><b>${r.privacy.highSimilarity}</b><b>Review candidates</b></div><div class="privacy-result-row"><span>Mean closest-row similarity</span><b>${privacyPct}%</b><b>Higher means closer</b></div>`;
-    populateFeatureControls(); renderUtility(); renderCoverage();
-  }
-  function setScore(key, value, label) {
-    const n = Math.round(value * 100); $(`[data-score-${key}]`).innerHTML = `${n}<small>/100</small>`;
-    $(`[data-score-bar="${key}"]`).style.width = `${n}%`; $(`[data-score-${key}-label]`).textContent = label;
-  }
-  function populateFeatureControls() {
-    if (!state.source.length || !state.synthetic.length) return;
-    const shared = getSharedColumns();
-    const featureSelect = $('[data-feature-select]');
-    if (featureSelect) {
-      const prev = featureSelect.value; featureSelect.innerHTML = '<option value="">All features</option>' + shared.map(k => `<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
-      if (shared.includes(prev)) featureSelect.value = prev;
-    }
-    const groupSelect = $('[data-group-select]');
-    if (groupSelect) {
-      const categorical = shared.filter(k => featureType(k) === 'category'), prev = groupSelect.value;
-      groupSelect.innerHTML = '<option value="">Choose a feature</option>' + categorical.map(k => `<option value="${escapeHTML(k)}">${escapeHTML(k)}</option>`).join('');
-      groupSelect.value = categorical.includes(prev) ? prev : (categorical.includes('region') ? 'region' : categorical[0] || '');
-    }
-  }
-  function renderUtility() {
-    if (!state.results) return;
-    const selected = $('[data-feature-select]')?.value;
-    const features = selected ? state.features.filter(f => f.key === selected) : state.features;
-    $('[data-utility-table]').innerHTML = features.map(f => `<tr><td>${escapeHTML(f.key)}</td><td>${f.type}</td><td>${escapeHTML(f.sourceSummary)}</td><td>${escapeHTML(f.syntheticSummary)}</td><td>${(f.drift * 100).toFixed(1)}%</td><td><span class="match-chip">${Math.round(f.match * 100)} / 100</span></td></tr>`).join('');
-    renderDistribution(features[0]);
-  }
-  function renderDistribution(feature) {
-    const root = $('[data-distribution-chart]'); if (!feature) { root.innerHTML = '<div class="empty-row">No comparable fields.</div>'; return; }
-    let categories, a, b;
-    if (feature.type === 'numeric') {
-      const all = [...feature.sourceValues, ...feature.syntheticValues], min = Math.min(...all), max = Math.max(...all), span = max - min || 1, bins = 12;
-      const counts = values => { const out = Array(bins).fill(0); values.forEach(v => out[Math.min(bins - 1, Math.floor((v - min) / span * bins))]++); return out.map(n => n / values.length); };
-      a = counts(feature.sourceValues); b = counts(feature.syntheticValues); categories = Array.from({ length: bins }, (_, i) => fmt(min + (i / bins) * span));
-    } else {
-      const pairs = feature.categories.map(k => [k, feature.sourceFreq.get(k) || 0, feature.syntheticFreq.get(k) || 0]).sort((x, y) => y[1] - x[1]).slice(0, 12);
-      categories = pairs.map(x => x[0]); a = pairs.map(x => x[1]); b = pairs.map(x => x[2]);
-    }
-    const max = Math.max(...a, ...b, .001);
-    root.innerHTML = categories.map((name, i) => `<div class="bar-group"><div class="bar-pair"><i class="bar source" style="height:${Math.max(2, a[i] / max * 100)}%" data-value="${(a[i] * 100).toFixed(1)}%"></i><i class="bar synthetic" style="height:${Math.max(2, b[i] / max * 100)}%" data-value="${(b[i] * 100).toFixed(1)}%"></i></div><span class="bar-label" title="${escapeHTML(name)}">${escapeHTML(name)}</span></div>`).join('');
-  }
-  function renderCoverage() {
-    const root = $('[data-coverage-bars]'), summary = $('[data-coverage-summary]'), key = $('[data-group-select]')?.value;
-    if (!root || !summary) return;
-    if (!key || !state.results) { root.innerHTML = ''; summary.innerHTML = '<div class="empty-row">Choose a categorical feature after loading data.</div>'; return; }
-    const fa = frequencies(state.source, key), fb = frequencies(state.synthetic, key), cats = [...new Set([...fa.counts.keys(), ...fb.counts.keys()])].sort((x, y) => (fa.proportions.get(y) || 0) - (fa.proportions.get(x) || 0));
-    const tvd = cats.reduce((sum, c) => sum + Math.abs((fa.proportions.get(c) || 0) - (fb.proportions.get(c) || 0)), 0) / 2;
-    const missing = cats.filter(c => fa.counts.has(c) && !fb.counts.has(c));
-    summary.innerHTML = `<b>${Math.round((1 - tvd) * 100)} / 100</b> proportion match across ${cats.length} observed groups.${missing.length ? ` Missing from synthetic data: <strong>${missing.map(escapeHTML).join(', ')}</strong>.` : ' No source categories are completely absent.'}`;
-    root.innerHTML = cats.map(c => { const av = fa.proportions.get(c) || 0, bv = fb.proportions.get(c) || 0; return `<div class="coverage-row"><span title="${escapeHTML(c)}">${escapeHTML(c)}${fb.counts.has(c) ? '' : ' · missing'}</span><div class="compare-track ${fb.counts.has(c) ? '' : 'is-missing'}"><i style="width:${av * 100}%"></i><b style="width:${bv * 100}%"></b></div><span>${(av * 100).toFixed(0)}% → ${(bv * 100).toFixed(0)}%</span></div>`; }).join('');
-  }
-  function buildReport() {
-    const r = state.results; if (!r) return null;
-    const privacyScore = clamp(r.privacy.avgSimilarity * .7 + (r.privacy.exact / Math.max(1, r.privacy.screened)) * .3, 0, 1);
-    return { product: 'Privacy Prism', createdAt: r.timestamp, source: { name: state.sourceName, rows: state.source.length }, synthetic: { name: state.syntheticName, rows: state.synthetic.length }, metrics: { utilityScore: Math.round(r.utility * 100), privacySimilaritySignal: Math.round(privacyScore * 100), meanNearestNeighborSimilarity: Number(r.privacy.avgSimilarity.toFixed(4)), exactSampledRecordMatches: r.privacy.exact, sampleRowsPerDataset: r.privacy.screened, subgroupCoverageScore: r.coverage === null ? null : Math.round(r.coverage * 100) }, features: r.features.map(f => ({ name: f.key, type: f.type, match: Number(f.match.toFixed(4)), drift: Number(f.drift.toFixed(4)), sourceSummary: f.sourceSummary, syntheticSummary: f.syntheticSummary })), limitations: ['Exploratory moment/proportion and sampled similarity metrics only.', 'Not differential privacy, a privacy guarantee, or a compliance certification.', 'CSV data is processed locally in the active browser tab; raw rows are not included in this report.'] };
-  }
-  function exportReport(type) {
-    const report = buildReport(); if (!report) { notify('Run an analysis before exporting.'); return; }
-    const stamp = new Date().toISOString().slice(0, 10);
-    if (type === 'csv') {
-      const rows = [['Feature','Type','Match score','Drift','Source summary','Synthetic summary'], ...report.features.map(f => [f.name, f.type, f.match, f.drift, f.sourceSummary, f.syntheticSummary])];
-      const csv = rows.map(row => row.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
-      download(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `privacy-prism-summary-${stamp}.csv`);
-    } else download(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), `privacy-prism-report-${stamp}.json`);
-    notify('Analysis summary downloaded. Raw rows are not included.');
-  }
-  function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
-  function notify(message) { const el = $('[data-toast]'); el.textContent = message; el.classList.add('is-visible'); clearTimeout(notify.timer); notify.timer = setTimeout(() => el.classList.remove('is-visible'), 2600); }
-  function setView(view, updateHash = true) {
-    if (!viewNames[view]) view = 'overview';
-    $$('.nav-item').forEach(b => b.classList.toggle('is-active', b.dataset.view === view));
-    $$('.view-panel').forEach(p => p.classList.toggle('is-visible', p.dataset.panel === view));
-    $('[data-breadcrumb]').textContent = viewNames[view];
-    if (updateHash && location.hash !== `#${view}`) history.replaceState(null, '', `#${view}`);
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) window.scrollTo(0, 0); else window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  document.addEventListener('click', e => {
-    const nav = e.target.closest('[data-view]'); if (nav) { setView(nav.dataset.view); return; }
-    const viewLink = e.target.closest('[data-view-link]'); if (viewLink) { setView(viewLink.dataset.viewLink); return; }
-    if (e.target.closest('[data-run]')) { runAnalysis(); return; }
-    if (e.target.closest('[data-load-demo]')) { loadDemo(); return; }
-    const exp = e.target.closest('[data-export]'); if (exp) { exportReport(exp.dataset.export); return; }
-    if (e.target.closest('[data-theme-toggle]')) { const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = theme; try { localStorage.setItem('privacy-prism-theme', theme); } catch {} $('.theme-toggle span').textContent = theme === 'dark' ? 'LIGHT' : 'DARK'; return; }
-  });
-  $('[data-feature-select]')?.addEventListener('change', renderUtility);
-  $('[data-group-select]')?.addEventListener('change', renderCoverage);
-  $$('[data-file]').forEach(input => input.addEventListener('change', async () => {
-    const file = input.files?.[0]; if (!file) return;
-    try {
-      if (file.size > 30 * 1024 * 1024) throw new Error('CSV exceeds the 30 MB browser limit.');
-      const rows = parseCSV(await file.text());
-      if (input.dataset.file === 'source') { state.source = rows; state.sourceName = file.name; }
-      else { state.synthetic = rows; state.syntheticName = file.name; }
-      $(`[data-file-name="${input.dataset.file}"]`).textContent = `${file.name} · ${rows.length.toLocaleString()} rows`;
-      syncDatasetLabels(); $('[data-stage-status]').textContent = 'DATASET CHANGED · RUN ANALYSIS';
-      $('[data-run-state]').innerHTML = '<i></i> ANALYSIS OUT OF DATE';
-      notify(`${file.name} loaded locally.`);
-    } catch (err) { input.value = ''; notify(err.message); }
-  }));
-  let initialTheme = 'dark'; try { initialTheme = localStorage.getItem('privacy-prism-theme') || 'dark'; } catch {} document.documentElement.dataset.theme = initialTheme; $('.theme-toggle span').textContent = initialTheme === 'dark' ? 'LIGHT' : 'DARK';
-  window.addEventListener('hashchange', () => setView(location.hash.slice(1), false));
-  setView(location.hash.slice(1) || 'overview', false);
-  loadDemo();
+  function duplicateCount(rows){const seen=new Set();let d=0;rows.forEach(r=>{const key=JSON.stringify(r);if(seen.has(key))d++;seen.add(key);});return d;}
+  function runAll(){if(!state.source.length||!state.synthetic.length){toast('Load a source and synthetic CSV first.');return;}const fields=nonIdFields();const feature=fields.map(fieldMetrics);const utility=mean(feature.map(x=>x.score));const privacy=privacyScreen(fields);const covField=selected('[data-group-select]')||fields.find(k=>kind(k)==='category');const coverage=coverageFor(covField);const diag=diagnostics();state.result={at:new Date().toISOString(),utility,privacy:privacy.risk,coverage:coverage.score,features:feature,privacyDetail:privacy,coverageDetail:coverage,diagnostics:diag};state.proxy=null;state.inference=null;populateSelectors();render();const runState=$('[data-run-state]');if(runState)runState.innerHTML='<i></i> ANALYSIS COMPLETE';toast('Analysis complete. Review each signal before making a release decision.');}
+  function privacyScreen(fields){const use=fields.slice(0,20),src=state.source.slice(0,250),syn=state.synthetic.slice(0,250);if(!use.length)return {risk:0,exact:0,count:syn.length,fields:0,meanSimilarity:0};let sim=0,exact=0;for(const s of syn){let best=1;for(const r of src)best=Math.min(best,distance(s,r,use));const ss=1-best;sim+=ss;if(best<.001)exact++;}const avg=syn.length?sim/syn.length:0;return {risk:avg*100,meanSimilarity:avg*100,exact,count:syn.length,fields:use.length};}
+  function coverageFor(k){if(!k||kind(k)!=='category')return {score:0,items:[],key:k||''};const A=categorical(state.source,k),B=categorical(state.synthetic,k),keys=new Set([...A.keys(),...B.keys()]);const nA=Math.max(1,values(state.source,k).length),nB=Math.max(1,values(state.synthetic,k).length);const items=[...keys].map(key=>({key,a:(A.get(key)||0)/nA,b:(B.get(key)||0)/nB}));const score=100*(1-items.reduce((s,x)=>s+Math.abs(x.a-x.b),0)/2);return {score,key:k,items};}
+  function selected(s){return $(s)?.value||'';}
+  function populateSelect(el,opts,placeholder,preferred){if(!el)return;const prior=el.multiple?[...el.selectedOptions].map(o=>o.value):el.value;el.innerHTML=(placeholder?`<option value="">${esc(placeholder)}</option>`:'')+opts.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(el.multiple){[...el.options].forEach(o=>o.selected=(prior.includes(o.value)||(!prior.length&&preferred?.includes(o.value))));}else if(prior&&opts.includes(prior))el.value=prior;else if(preferred&&opts.includes(preferred))el.value=preferred;}
+  function populateSelectors(){const cats=shared().filter(k=>kind(k)==='category'&&!identifier(k)),all=shared().filter(k=>!identifier(k));populateSelect($('[data-feature-select]'),all,'All fields');populateSelect($('[data-group-select]'),cats,'Choose a category',cats[0]);populateSelect($('[data-intersection-a]'),cats,'Choose dimension',cats[0]);populateSelect($('[data-intersection-b]'),cats,'Choose dimension',cats[1]);populateSelect($('[data-ml-target]'),cats,'Choose categorical outcome');const known=$('[data-inference-keys]');populateSelect(known,all.filter(k=>k!==selected('[data-inference-secret]')),'',all.filter(k=>['region','plan','device'].includes(k)));populateSelect($('[data-inference-secret]'),cats,'Choose a sensitive field',cats.find(k=>['churn','diagnosis','income','status'].includes(k)));}
+  function render(){if(!state.result)return;const r=state.result;$$('[data-score-utility],[data-score-privacy],[data-score-coverage]').forEach(e=>{const v=e.matches('[data-score-utility]')?r.utility:e.matches('[data-score-privacy]')?r.privacy:r.coverage;e.innerHTML=`${Math.round(v)}<small>/100</small>`;});setText('[data-mini-utility]',Math.round(r.utility));setText('[data-mini-privacy]',Math.round(r.privacy));setText('[data-mini-coverage]',Math.round(r.coverage));$$('[data-score-bar]').forEach(e=>e.style.width=`${clamp(r[e.dataset.scoreBar])}%`);setText('[data-score-utility-label]',r.utility>=75?'Patterns broadly aligned':'Review distribution shifts');setText('[data-score-privacy-label]',r.privacy>=70?'High similarity signal · inspect':'Screen only · not a guarantee');setText('[data-score-coverage-label]',r.coverage>=75?'Observed categories represented':'Some proportions shifted');setText('[data-source-name]',state.sourceName);setText('[data-synthetic-name]',state.syntheticName);setText('[data-source-meta]',`${state.source.length} rows · ${headers(state.source).length} fields`);setText('[data-synthetic-meta]',`${state.synthetic.length} rows · ${headers(state.synthetic).length} fields`);setText('[data-stage-status]',`COMPARISON COMPLETE · ${shared().length} SHARED FEATURES`);renderUtility();renderPrivacy();renderCoverage();renderDiagnostics();renderSchema();renderOverview();evaluateGate();}
+  function renderUtility(){const rows=state.result.features;const selectedKey=selected('[data-feature-select]');const filtered=selectedKey?rows.filter(x=>x.key===selectedKey):rows;const body=$('[data-utility-table]');if(body)body.innerHTML=filtered.map(x=>`<tr><td>${esc(x.key)}</td><td>${esc(x.type)}</td><td>${x.nSource}</td><td>${x.nSynthetic}</td><td>${fmt(x.drift)}%</td><td><b>${Math.round(x.score)}</b></td></tr>`).join('')||'<tr><td colspan="6">No comparable fields.</td></tr>';const drift=mean(rows.map(x=>x.drift));setText('[data-utility-index]',rows.length);setText('[data-utility-drift]',`${fmt(drift)}%`);const key=selectedKey||rows[0]?.key;const chart=$('[data-distribution-chart]');if(chart)chart.innerHTML=key?chartMarkup(key):'<div class="empty-state">No eligible feature to chart.</div>';const snap=$('[data-feature-snapshot]');if(snap)snap.innerHTML=rows.slice().sort((a,b)=>a.score-b.score).slice(0,5).map(x=>`<div class="snapshot-row"><span>${esc(x.key)}</span><i><b style="width:${x.score}%"></b></i><strong>${Math.round(x.score)}</strong></div>`).join('');}
+  function chartMarkup(k){const type=kind(k),a=values(state.source,k),b=values(state.synthetic,k);let bins=[];if(type==='numeric'||type==='date'){let A=type==='date'?a.map(Date.parse).filter(Number.isFinite):a.map(Number).filter(Number.isFinite),B=type==='date'?b.map(Date.parse).filter(Number.isFinite):b.map(Number).filter(Number.isFinite);let min=Math.min(...A,...B),max=Math.max(...A,...B);if(min===max)max=min+1;const count=8;bins=Array.from({length:count},(_,i)=>{const lo=min+(max-min)*i/count,hi=min+(max-min)*(i+1)/count;const ca=A.filter(v=>v>=lo&&(i===count-1?v<=hi:v<hi)).length/Math.max(1,A.length);const cb=B.filter(v=>v>=lo&&(i===count-1?v<=hi:v<hi)).length/Math.max(1,B.length);return {label:fmt(lo),a:ca,b:cb};});}else{const keys=[...new Set([...a,...b].map(String))].sort().slice(0,8);bins=keys.map(label=>({label,a:a.filter(v=>String(v)===label).length/Math.max(1,a.length),b:b.filter(v=>String(v)===label).length/Math.max(1,b.length)}));}const max=Math.max(.01,...bins.flatMap(x=>[x.a,x.b]));return bins.map(x=>`<div class="bar-group"><div class="bar-pair"><i class="bar source" data-value="${pct(x.a*100)}" style="height:${Math.max(2,x.a/max*100)}%"></i><i class="bar synthetic" data-value="${pct(x.b*100)}" style="height:${Math.max(2,x.b/max*100)}%"></i></div><small class="bar-label">${esc(x.label)}</small></div>`).join('');}
+  function renderPrivacy(){const p=state.result.privacyDetail;setText('[data-near-match]',Math.round(p.meanSimilarity));setText('[data-exact-matches]',p.exact);setText('[data-screen-count]',p.count);setText('[data-screen-features]',p.fields);setText('[data-privacy-level]',p.risk>=70?'HIGH SIGNAL':p.risk>=40?'REVIEW':'LOWER SIGNAL');const list=$('[data-privacy-list]');if(list)list.innerHTML=`<div class="diagnostic-line"><span>Mean nearest-row similarity</span><b>${fmt(p.meanSimilarity)}%</b></div><div class="diagnostic-line"><span>Exact row matches in sample</span><b>${p.exact}</b></div><div class="diagnostic-line"><span>Identifier fields excluded</span><b>YES</b></div><small class="muted">Similarity is a screening signal; it does not estimate formal re-identification probability.</small>`;if(state.inference)renderInference();}
+  function renderCoverage(){const cov=coverageFor(selected('[data-group-select]')||state.result.coverageDetail.key);state.result.coverage=cov.score;state.result.coverageDetail=cov;$$('[data-score-coverage]').forEach(e=>e.innerHTML=`${Math.round(cov.score)}<small>/100</small>`);setText('[data-mini-coverage]',Math.round(cov.score));const sum=$('[data-coverage-summary]');if(sum)sum.innerHTML=`<b>${Math.round(cov.score)}<small>/100</small></b><span>proportion match · ${esc(cov.key||'no category selected')}</span>`;const bars=$('[data-coverage-bars]');if(bars)bars.innerHTML=cov.items.map(x=>`<div class="coverage-row"><span>${esc(x.key)}</span><div class="compare-track"><i style="width:${clamp(x.a*100)}%"></i><b style="width:${clamp(x.b*100)}%"></b></div><span>${fmt((x.b-x.a)*100)} pp</span></div>`).join('');renderIntersection();evaluateGate();}
+  function renderIntersection(){const ka=selected('[data-intersection-a]'),kb=selected('[data-intersection-b]'),el=$('[data-intersection-table]'),summary=$('[data-intersection-summary]');if(!ka||!kb||ka===kb){if(summary)summary.textContent='Choose two different categorical dimensions.';if(el)el.innerHTML='';return;}const key=r=>`${r[ka]} · ${r[kb]}`,A=new Map(),B=new Map();state.source.forEach(r=>A.set(key(r),(A.get(key(r))||0)+1));state.synthetic.forEach(r=>B.set(key(r),(B.get(key(r))||0)+1));const all=[...new Set([...A.keys(),...B.keys()])],totalA=state.source.length,totalB=state.synthetic.length;const missing=all.filter(k=>A.has(k)&&!B.has(k)).length;const avg=mean(all.map(k=>Math.abs((A.get(k)||0)/totalA-(B.get(k)||0)/totalB)));if(summary)summary.textContent=`${missing} source combinations absent · ${Math.round((1-avg/2)*100)}% average proportion match`;if(el)el.innerHTML=`<div class="intersection-head"><span>COMBINATION</span><span>SOURCE</span><span>SYNTHETIC</span></div>`+all.slice(0,16).map(k=>`<div class="intersection-row"><span>${esc(k)}</span><b>${A.get(k)||0}</b><b>${B.get(k)||0}</b></div>`).join('');}
+  function renderDiagnostics(){const d=state.result.diagnostics;[['schema',d.schemaScore],['missing',d.missingScore],['shape',d.shapeScore],['correlation',d.correlationScore],['bounds',d.boundsScore],['integrity',d.integrityScore]].forEach(([k,v])=>setText(`[data-${k}-score]`,Math.round(v)));const shape=$('[data-shape-table]');if(shape)shape.innerHTML=d.shapes.map(x=>`<tr><td>${esc(x.key)}</td><td>${x.type==='numeric'?'KS distance':'TV distance'}</td><td>${fmt(x.drift)}%</td><td>${x.score>=80?'Aligned':'Review shift'}</td></tr>`).join('')||'<tr><td colspan="4">No eligible fields.</td></tr>';const corr=$('[data-correlation-list]');if(corr)corr.innerHTML=d.corr.slice(0,8).map(x=>`<div class="diagnostic-line"><span>${esc(x.a)} ↔ ${esc(x.b)}</span><b>${fmt(x.delta)} drift</b></div>`).join('')||'<div class="empty-state">At least two numeric fields are needed.</div>';const integ=$('[data-integrity-list]');if(integ)integ.innerHTML=d.bounds.map(x=>`<div class="diagnostic-line"><span>${esc(x.key)}</span><b>${esc(x.detail)}</b></div>`).concat([`<div class="diagnostic-line"><span>Duplicate source rows</span><b>${d.dupS}</b></div>`,`<div class="diagnostic-line"><span>Duplicate synthetic rows</span><b>${d.dupT}</b></div>`]).join('');const list=$('[data-schema-list].diagnostic-list');if(list)list.innerHTML=d.miss.map(x=>`<div class="diagnostic-line"><span>${esc(x.key)} · null rate</span><b>${pct(x.source*100)} → ${pct(x.synthetic*100)}</b></div>`).join('')||'<div class="empty-state">No shared fields.</div>';}
+  function renderSchema(){const hs=headers(state.source),ht=headers(state.synthetic),sharedFields=shared(),missing=hs.filter(k=>!ht.includes(k)),extra=ht.filter(k=>!hs.includes(k));setText('[data-schema-state]',`${sharedFields.length} SHARED · ${missing.length+extra.length} DIFFERENCES`);$$('[data-schema-list].schema-chips').forEach(el=>{el.innerHTML=sharedFields.map(k=>`<span class="schema-chip">${esc(k)} <small>${esc(kind(k))}</small></span>`).concat(missing.map(k=>`<span class="schema-chip schema-missing">SOURCE ONLY · ${esc(k)}</span>`),extra.map(k=>`<span class="schema-chip schema-extra">SYNTHETIC ONLY · ${esc(k)}</span>`)).join('')||'<div class="empty-state">No shared columns.</div>';});}
+  function renderOverview(){const gate=evaluateGate();setText('[data-verdict-title]',gate.status==='PASS'?'Evidence clears your gate':gate.status==='HOLD'?'Pause for a closer look':'Review flagged checks');setText('[data-verdict-copy]',gate.status==='PASS'?'Your selected screening thresholds currently pass. This is not certification or a privacy guarantee.':`${gate.findings.length} screening item(s) need attention under your current policy. Open the release gate to review the evidence.`);}
+  function evaluateGate(){if(!state.result)return {status:'NOT RUN',findings:[]};const r=state.result,d=r.diagnostics;const t=Object.fromEntries($$('[data-threshold]').map(e=>[e.dataset.threshold,+e.value]));const findings=[];if(d.missingCols.length)findings.push(`${d.missingCols.length} unmatched column(s) in schema`);if(r.utility<t.utility)findings.push(`Utility ${Math.round(r.utility)} is below ${t.utility}`);if(r.privacy>t.privacy)findings.push(`Similarity ${Math.round(r.privacy)} exceeds ${t.privacy}`);if(r.coverage<t.coverage)findings.push(`Group coverage ${Math.round(r.coverage)} is below ${t.coverage}`);if((100-d.missingScore)>t.missing)findings.push(`Missingness drift ${Math.round(100-d.missingScore)}% exceeds ${t.missing}%`);const status=d.missingCols.length?'HOLD':findings.length?'REVIEW':'PASS';const box=$('[data-gate-result]');if(box){box.classList.remove('is-pass','is-review','is-hold');box.classList.add(status==='PASS'?'is-pass':status==='HOLD'?'is-hold':'is-review');box.innerHTML=`<span class="gate-mark">${status==='PASS'?'✓':status==='HOLD'?'!':'◌'}</span><div><b>${status}: ${status==='PASS'?'selected screens clear':status==='HOLD'?'schema differences need review':'thresholds need review'}</b><p>This reflects your selected settings and lightweight browser checks only.</p></div>`;}const list=$('[data-gate-findings]');if(list)list.innerHTML=findings.length?findings.map(x=>`<div class="diagnostic-line"><span>REVIEW</span><b>${esc(x)}</b></div>`).join(''):'<div class="diagnostic-line"><span>NO THRESHOLD FLAGS</span><b>Continue human review</b></div>';return {status,findings};}
+  function renderInference(){const x=state.inference,el=$('[data-inference-result]');if(!el||!x)return;el.innerHTML=`<div class="proxy-score"><b>${fmt(x.accuracy*100)}%</b><span>inference accuracy on matched source rows</span></div><div class="diagnostic-line"><span>Matched rows</span><b>${x.matched}</b></div><div class="diagnostic-line"><span>Majority baseline</span><b>${fmt(x.baseline*100)}%</b></div><div class="diagnostic-line"><span>Accuracy uplift</span><b>${fmt((x.accuracy-x.baseline)*100)} pp</b></div>`;}
+  function runInference(){const keys=[...($('[data-inference-keys]')?.selectedOptions||[])].map(o=>o.value),secret=selected('[data-inference-secret]');if(!keys.length||!secret){toast('Choose at least one known field and one sensitive field.');return;}const groups=new Map();state.synthetic.forEach(r=>{const sig=keys.map(k=>String(r[k]??'∅')).join('|');const val=String(r[secret]??'');if(!val)return;const m=groups.get(sig)||new Map();m.set(val,(m.get(val)||0)+1);groups.set(sig,m);});let matched=0,correct=0;const srcVals=values(state.source,secret).map(String),counts=new Map();srcVals.forEach(v=>counts.set(v,(counts.get(v)||0)+1));const baseline=srcVals.length?Math.max(...counts.values())/srcVals.length:0;state.source.forEach(r=>{const v=r[secret];if(v==null)return;const m=groups.get(keys.map(k=>String(r[k]??'∅')).join('|'));if(!m)return;matched++;const pred=[...m].sort((a,b)=>b[1]-a[1])[0]?.[0];if(String(v)===pred)correct++;});state.inference={matched,accuracy:matched?correct/matched:0,baseline};renderInference();toast(matched?'Inference screen complete. Interpret as one scenario, not a complete attacker model.':'No source rows matched the chosen known-field combination.');}
+  function runProxy(){const target=selected('[data-ml-target]'),out=$('[data-ml-result]');if(!target){toast('Choose a categorical target field first.');return;}const fields=nonIdFields().filter(k=>k!==target);const src=state.source.filter(r=>r[target]!=null),syn=state.synthetic.filter(r=>r[target]!=null);if(src.length<8||syn.length<3){toast('More labeled rows are needed for this proxy.');return;}const hold=src.filter((_,i)=>i%4===0),train=src.filter((_,i)=>i%4!==0);if(hold.length<2||train.length<3){toast('Not enough rows for a held-out comparison.');return;}const accA=knnAccuracy(train,hold,fields,target),accB=knnAccuracy(syn,hold,fields,target);state.proxy={source:accA,synthetic:accB,ratio:accA?clamp(accB/accA*100):0,target,hold:hold.length};if(out)out.innerHTML=`<div class="proxy-score"><b>${fmt(accB*100)}%</b><span>synthetic-trained · held-out source accuracy</span></div><div class="diagnostic-line"><span>Source-trained baseline</span><b>${fmt(accA*100)}%</b></div><div class="diagnostic-line"><span>Retained task score</span><b>${fmt(state.proxy.ratio)}%</b></div><div class="diagnostic-line"><span>Held-out source rows</span><b>${hold.length}</b></div><small class="muted">1-NN is a rough task utility proxy. It is sensitive to sample size and feature scaling.</small>`;toast('Task-specific proxy complete.');}
+  function knnAccuracy(train,test,fields,target){let hit=0;for(const q of test){let best=Infinity,pred=null;for(const r of train){const d=distance(q,r,fields);if(d<best){best=d;pred=r[target];}}if(String(pred)===String(q[target]))hit++;}return hit/test.length;}
+  function downloadReport(){if(!state.result){toast('Run analysis before exporting evidence.');return;}const gate=evaluateGate();const report={product:'Privacy Prism',version:'1.0',generatedAt:new Date().toISOString(),scope:'Aggregate screening evidence only; raw records are excluded.',datasets:{source:{name:state.sourceName,rows:state.source.length,columns:headers(state.source).length},synthetic:{name:state.syntheticName,rows:state.synthetic.length,columns:headers(state.synthetic).length}},coreSignals:{utility:Math.round(state.result.utility),nearestNeighborSimilarityRisk:Math.round(state.result.privacy),groupCoverage:Math.round(state.result.coverage)},featureFidelity:state.result.features,diagnostics:state.result.diagnostics,attributeInference:state.inference,taskUtilityProxy:state.proxy,releaseGate:{status:gate.status,findings:gate.findings,thresholds:Object.fromEntries($$('[data-threshold]').map(e=>[e.dataset.threshold,+e.value]))},limitations:['Exploratory screens, not a privacy guarantee or certification.','Similarity is not a formal re-identification probability.','Task proxy uses a basic 1-nearest-neighbor classifier.','No raw rows are included in this export.']};const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='privacy-prism-evidence.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('Aggregate evidence JSON downloaded.');}
+  function parseCSV(text){text=text.replace(/^\uFEFF/,'');const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i];if(quoted){if(c==='"'&&text[i+1]==='"'){cell+='"';i++;}else if(c==='"')quoted=false;else cell+=c;}else if(c==='"')quoted=true;else if(c===','){row.push(cell);cell='';}else if(c==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell='';}else cell+=c;}if(cell.length||row.length){row.push(cell.replace(/\r$/,''));rows.push(row);}const nonblank=rows.filter(r=>r.some(x=>String(x).trim()!==''));if(nonblank.length<2)throw new Error('CSV needs a header and at least one data row.');const hdr=nonblank[0].map((x,i)=>String(x).trim()||`column_${i+1}`);if(new Set(hdr).size!==hdr.length)throw new Error('Column names must be unique.');return nonblank.slice(1).map(r=>Object.fromEntries(hdr.map((h,i)=>[h,parseValue(r[i])])));}
+  async function loadFile(input){const file=input.files?.[0];if(!file)return;if(file.size>30*1024*1024){toast('CSV files are limited to 30 MB in this browser build.');input.value='';return;}try{const data=parseCSV(await file.text());state[input.dataset.file]=data;state[`${input.dataset.file}Name`]=file.name;setText(`[data-file-name="${input.dataset.file}"]`,`${file.name} · ${data.length} rows`);state.result=null;state.proxy=null;state.inference=null;populateSelectors();renderSchema();toast(`${file.name} loaded locally (${data.length} rows). Load the other dataset, then run checks.`);}catch(e){toast(e.message||'Could not read this CSV.');input.value='';}}
+  function setView(name){const panel=$(`[data-panel="${name}"]`);if(!panel)return;$$('[data-panel]').forEach(e=>e.classList.toggle('is-active',e===panel));$$('[data-view]').forEach(e=>e.classList.toggle('is-active',e.dataset.view===name));setText('[data-breadcrumb]',name.replaceAll('-',' ').toUpperCase());history.replaceState(null,'',`#${name}`);window.scrollTo({top:0,behavior:'smooth'});}
+  let toastTimer;function toast(msg){const el=$('[data-toast]');if(!el)return;el.textContent=msg;el.classList.add('is-visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('is-visible'),3300);}
+  function initTheme(){const saved=localStorage.getItem('privacy-prism-theme');if(saved)document.documentElement.dataset.theme=saved;syncThemeLabel();}
+  function syncThemeLabel(){setText('[data-theme-label]',document.documentElement.dataset.theme==='dark'?'LIGHT':'DARK');}
+  function initPointer(){const stage=$('.crystal-stage');if(!stage)return;stage.addEventListener('pointermove',e=>{const r=stage.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;stage.style.setProperty('--tilt-x',`${x*16}deg`);stage.style.setProperty('--tilt-y',`${-y*12}deg`);});stage.addEventListener('pointerleave',()=>{stage.style.setProperty('--tilt-x','0deg');stage.style.setProperty('--tilt-y','0deg');});}
+  document.addEventListener('click',e=>{const nav=e.target.closest('[data-view]');if(nav){setView(nav.dataset.view);return;}const link=e.target.closest('[data-view-link]');if(link){setView(link.dataset.viewLink);return;}if(e.target.closest('[data-run]')){runAll();return;}if(e.target.closest('[data-load-demo]')){loadDemo();return;}if(e.target.closest('[data-run-inference]')){runInference();return;}if(e.target.closest('[data-run-proxy]')){runProxy();return;}if(e.target.closest('[data-export]')){downloadReport();return;}if(e.target.closest('[data-theme-toggle]')){document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';localStorage.setItem('privacy-prism-theme',document.documentElement.dataset.theme);syncThemeLabel();}});
+  document.addEventListener('change',e=>{if(e.target.matches('[data-file]'))loadFile(e.target);else if(e.target.matches('[data-feature-select]'))renderUtility();else if(e.target.matches('[data-group-select]'))renderCoverage();else if(e.target.matches('[data-intersection-a],[data-intersection-b]'))renderIntersection();else if(e.target.matches('[data-inference-secret]'))populateSelectors();else if(e.target.matches('[data-ml-target]'))state.proxy=null;});
+  document.addEventListener('input',e=>{if(e.target.matches('[data-threshold]')){setText(`[data-threshold-value="${e.target.dataset.threshold}"]`,e.target.value);evaluateGate();}});
+  initTheme();initPointer();populateSelectors();const hash=location.hash.slice(1);if(hash&&$(`[data-panel="${hash}"]`))setView(hash);loadDemo();
 })();

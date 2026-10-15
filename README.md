@@ -1,37 +1,51 @@
-# Privacy Prism — Synthetic Data Quality Lab
+# Privacy Prism
 
-A free-first, browser-only workbench for comparing an original CSV with a synthetic CSV across statistical utility, record similarity, and subgroup representation. The selected visual direction is **Privacy Prism**: a restrained graphite interface with an animated glass prism and flowing data ribbons.
+Privacy Prism is a free, browser-only synthetic-data release-readiness lab. It compares an original/reference CSV with a synthetic CSV and turns the results into readable evidence for a human review. The selected visual direction is the dark **Privacy Prism** concept: graphite panels, large readable typography, a sharply faceted vector crystal, animated light dispersion, and pointer-responsive tilt.
 
-## Run locally
+## Start
 
-Open `index.html` in a modern browser, or serve the folder:
+Open `index.html` directly, or serve this folder locally:
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Then open `http://localhost:8000`. Google Fonts are optional; the page falls back to system fonts. No API key, backend, account, package install, or paid service is required.
+Visit `http://localhost:8000`. No build step, package installation, account, API key, or paid service is required. Google Fonts improve the visual match; the design falls back to system fonts if they are unavailable.
 
 ## Deploy on Vercel
 
-1. Put the contents of this folder at the root of a GitHub repository.
+1. Upload the contents of this folder to the root of a GitHub repository.
 2. Import the repository in Vercel.
-3. Choose **Other** as the framework preset.
-4. Leave the build command blank and use `.` as the output directory.
-5. Deploy.
+3. Choose **Other** as the framework preset, leave the build command empty, and set the output directory to `.`.
+4. Deploy.
 
-## What works
+## Preserved core features
 
-- Upload a source CSV and a synthetic CSV from the Datasets view. Files are parsed and analyzed in the browser tab; raw rows are not uploaded or stored in local storage.
-- Load the included sample pair to explore the app immediately.
-- Compare numeric features using mean and standard-deviation drift; compare categorical features using total variation distance.
-- Screen up to 300 sampled rows in each file for exact overlap and nearest-neighbor similarity.
-- Select a categorical feature to compare subgroup proportions and identify categories absent from the synthetic dataset.
-- Switch between Overview, Utility, Privacy Risk, Subgroup Coverage, Datasets, and Method & Limits. Export an analysis summary as JSON or CSV.
-- Change between dark and light themes. The preference is saved locally; uploaded dataset rows are not.
+- **Utility and fidelity:** compare numeric distributions with a two-sample empirical CDF distance plus standardized mean movement; compare categories with total variation distance.
+- **Nearest-row similarity screen:** compare up to 250 synthetic rows against up to 250 source rows using normalized, shared non-identifier fields; report exact overlaps and mean nearest-row similarity.
+- **Group coverage:** compare proportions for one selected categorical field and inspect missing categories.
 
-## Scope and limitations
+## Ten added checks and workflows
 
-These are exploratory screening metrics, not a certification. The privacy screen is not differential privacy, a membership-inference attack, re-identification proof, or legal compliance review. It compares at most 300 deterministically sampled rows per file, which can miss rare cases. Numeric utility uses simple moment comparisons and does not capture every distributional or relational property. Coverage only evaluates one selected categorical field at a time and does not establish fairness. Review the method page before using the results; sensitive data requires a formal privacy review.
+1. **Schema alignment:** find source-only and synthetic-only columns.
+2. **Missingness fidelity:** compare per-field null rates.
+3. **Distribution-shape screen:** report KS distance for numeric fields and total variation distance for categories.
+4. **Relationship drift:** compare pairwise Pearson correlations for numeric feature pairs.
+5. **Range and category validity:** identify numeric values outside the source range and categories not observed in the source.
+6. **Record integrity:** count duplicate rows in both datasets.
+7. **Attribute-inference scenario:** choose known fields and a sensitive field to see whether synthetic groups can help predict source values, with a majority baseline.
+8. **Intersectional coverage:** compare two-field combinations to find source combinations absent from synthetic data.
+9. **Downstream model utility proxy:** compare a simple 1-nearest-neighbor classifier trained on source versus synthetic rows, evaluated on held-out source rows.
+10. **User-defined release gate and evidence pack:** set thresholds, see PASS / REVIEW / HOLD flags, and download aggregate JSON evidence.
 
-The initial version uses deterministic statistics rather than an LLM or a trained model. This keeps the complete analysis local and free, and makes the calculations inspectable. Any future AI explanation layer should be optional and should never receive raw uploaded data by default.
+Every analysis control is functional in the browser. The included customer-style demo data is fabricated for interface exploration and contains no real people.
+
+## Privacy and interpretation
+
+CSV files are parsed in browser memory. The app does not send rows to a server or include rows in the JSON evidence export. It does not save uploaded data in local storage; closing the tab clears it. The optional theme preference is stored locally.
+
+These are exploratory screens, not a certification, legal assessment, differential-privacy guarantee, or proof against re-identification. Nearest-neighbor similarity is not a probability of disclosure. The inference and model checks are deliberately simple and can be unstable on small data. Range validity can flag legitimate generated tail values. A passing user-defined gate is not evidence that data is safe to publish. Review the in-app **Method & limitations** page and get an appropriate privacy/security review before releasing sensitive data.
+
+## Product position
+
+The problem is real and active: teams need an understandable release review that examines utility, similarity risk signals, missingness, relationships, and subgroup blind spots together. This project should be presented as a distinctive local-first workflow and visual product experience—not as a claim that synthetic-data evaluation is a wholly untouched research area.
