@@ -125,7 +125,7 @@
       for(const tri of [[top,ring[i],ring[j]],[bottom,ring[j],ring[i]]]) triangle(tri[0],tri[1],tri[2],color,positions,normals);
     }
     for(let face=0;face<8;face++) for(let i=0;i<3;i++) colors.push(...palette[face]);
-    return { positions:makeBuffer(positions), normal:makeBuffer(normals), color:makeBuffer(colors), count:positions.length/3 };
+    return { position:makeBuffer(positions), normal:makeBuffer(normals), color:makeBuffer(colors), count:positions.length/3 };
   }
   const outer = crystalGeometry();
   const inner = crystalGeometry();
