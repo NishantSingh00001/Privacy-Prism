@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#15171a">
+  <meta name="description" content="A local-first synthetic data evaluation workbench for utility, privacy screening, and subgroup coverage.">
+  <title>Privacy Prism — Synthetic Data Workbench</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="rail">
+      <a class="brand" href="#overview" aria-label="Privacy Prism overview"><span class="brand-mark"><i></i><i></i><i></i></span><span><b>PRIVACY<br>PRISM</b><small>DATA QUALITY LAB</small></span></a>
+      <div class="rail-label">WORKSPACE</div>
+      <nav class="side-nav" aria-label="Workspace views">
+        <button class="nav-item is-active" data-view="overview" title="Overview"><span class="nav-icon">◫</span>Overview</button>
+        <button class="nav-item" data-view="utility" title="Utility"><span class="nav-icon">⌁</span>Utility</button>
+        <button class="nav-item" data-view="privacy" title="Privacy risk"><span class="nav-icon">⌑</span>Privacy risk</button>
+        <button class="nav-item" data-view="coverage" title="Subgroup coverage"><span class="nav-icon">◌</span>Subgroup coverage</button>
+        <button class="nav-item" data-view="data" title="Datasets"><span class="nav-icon">▤</span>Datasets</button>
+        <button class="nav-item" data-view="method" title="Method & limits"><span class="nav-icon">ⓘ</span>Method & limits</button>
+      </nav>
+      <div class="rail-bottom"><span class="local-lock">▣</span><div><b>Runs on this device</b><small>Files stay in your browser</small></div><span class="local-dot"></span></div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar"><div class="breadcrumb"><span>WORKSPACE</span><b>/</b><strong data-breadcrumb>OVERVIEW</strong></div><div class="top-actions"><span class="run-state" data-run-state><i></i> READY</span><button class="theme-toggle" data-theme-toggle aria-label="Switch theme">◐ <span>LIGHT</span></button><button class="button button-run" data-run>Run analysis <span>↗</span></button></div></header>
+
+      <section class="view-panel is-visible" data-panel="overview">
+        <div class="page-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> SYNTHETIC DATA / EVALUATION WORKSPACE</div><h1>See the trade-offs.<br><em>Keep what matters.</em></h1><p class="intro">Source and synthetic data, read through utility, privacy signals, and group coverage.</p></div><div class="heading-note"><span>LOCAL ANALYSIS</span><b>Three lenses.<br>One decision.</b><small>Your files stay in this tab.</small></div></div>
+
+        <section class="prism-stage" aria-label="Interactive 3D visualization comparing source and synthetic data">
+          <div class="stage-caption"><span>01 — 03 &nbsp; / &nbsp; DATA RELATIONSHIP</span><span data-stage-status>DEMO COMPARISON · 8 SHARED FEATURES</span></div>
+          <div class="prism-layout">
+            <div class="scene-dataset source-dataset"><span class="dataset-kicker">01 / SOURCE</span><span class="scene-orbit source-orbit"><i></i><i></i><i></i></span><b data-source-name>Customer Records.csv</b><small data-source-meta>24 rows · 8 features</small><span class="scene-line source-line"></span></div>
+            <div class="prism-viewport"><canvas id="prismCanvas" aria-label="Animated glass prism with flowing source and synthetic data streams"></canvas><div class="prism-vignette"></div><div class="prism-readouts"><span>UTILITY <b data-mini-utility>—</b></span><i></i><span>SIMILARITY <b data-mini-privacy>—</b></span><i></i><span>GROUPS <b data-mini-coverage>—</b></span></div><div class="prism-controls"><span>DRAG TO ROTATE</span><button type="button" data-prism-motion aria-pressed="false">Ⅱ &nbsp; PAUSE</button></div><div class="webgl-fallback" data-prism-fallback hidden>3D view unavailable in this browser.<br><small>Your dataset analysis still works.</small></div></div>
+            <div class="scene-dataset synthetic-dataset"><span class="dataset-kicker">02 / SYNTHETIC</span><span class="scene-orbit synthetic-orbit"><i></i><i></i><i></i></span><b data-synthetic-name>Synthetic v1.csv</b><small data-synthetic-meta>24 rows · 8 features</small><span class="scene-line synthetic-line"></span></div>
+          </div>
+          <div class="stage-bottom"><span><i class="legend-source"></i> SOURCE SIGNAL</span><span><i class="legend-synthetic"></i> SYNTHETIC SIGNAL</span><button class="text-link" data-view-link="data">CHANGE DATASETS <b>↗</b></button><span class="stage-note">SIMILARITY IS A SCREEN, NOT A PRIVACY GUARANTEE</span></div>
+        </section>
+
+        <div class="score-grid">
+          <article class="score-card score-utility"><div class="score-top"><span class="score-index">01 / UTILITY</span><span class="score-mark">↗</span></div><strong data-score-utility>—<small>/100</small></strong><p>How closely key patterns match.</p><div class="score-track"><i data-score-bar="utility"></i></div><span class="score-foot" data-score-utility-label>Run analysis to compare</span></article>
+          <article class="score-card score-privacy"><div class="score-top"><span class="score-index">02 / PRIVACY SCREEN</span><span class="score-mark">⌑</span></div><strong data-score-privacy>—<small>/100</small></strong><p>Similarity signal · higher needs review.</p><div class="score-track"><i data-score-bar="privacy"></i></div><span class="score-foot" data-score-privacy-label>Screening proxy · not a guarantee</span></article>
+          <article class="score-card score-coverage"><div class="score-top"><span class="score-index">03 / COVERAGE</span><span class="score-mark">◌</span></div><strong data-score-coverage>—<small>/100</small></strong><p>Representation across selected groups.</p><div class="score-track"><i data-score-bar="coverage"></i></div><span class="score-foot" data-score-coverage-label>Select a subgroup feature</span></article>
+        </div>
+
+        <div class="overview-lower"><section class="panel recent-panel"><div class="panel-heading"><div><span class="eyebrow">FEATURE SNAPSHOT</span><h2>Where patterns drift.</h2></div><button class="text-link" data-view-link="utility">Explore utility <span>↗</span></button></div><div class="feature-list" data-feature-snapshot><div class="empty-row">Run an analysis to see feature-by-feature differences.</div></div></section><section class="panel decision-panel"><span class="eyebrow">A PRACTICAL READ</span><h2 data-verdict-title>Start with the data.</h2><p data-verdict-copy>Load two CSV files or explore the sample analysis. The numbers are designed to expose trade-offs, not certify a dataset.</p><button class="button button-quiet" data-view-link="method">Read the methodology <span>↗</span></button></section></div>
+      </section>
+
+      <section class="view-panel" data-panel="utility">
+        <div class="section-heading"><div><div class="eyebrow">01 / DISTRIBUTION FIDELITY</div><h1>What did the<br><em>synthetic data keep?</em></h1><p class="intro">Compare feature distributions and summary statistics side by side.</p></div><button class="button button-run" data-run>Run analysis <span>↗</span></button></div>
+        <div class="panel utility-panel"><div class="panel-heading"><div><span class="eyebrow">FEATURE COMPARISON</span><h2>Source vs. synthetic</h2></div><label class="select-label">FEATURE <select data-feature-select><option value="">All features</option></select></label></div><div class="chart-legend"><span><i class="legend-source"></i>Source</span><span><i class="legend-synthetic"></i>Synthetic</span><span class="chart-hint">Bars show normalized distribution share</span></div><div class="distribution-chart" data-distribution-chart><div class="empty-row">Load datasets and run analysis to build the comparison.</div></div><div class="table-wrap"><table><thead><tr><th>FEATURE</th><th>TYPE</th><th>SOURCE</th><th>SYNTHETIC</th><th>DRIFT</th><th>MATCH</th></tr></thead><tbody data-utility-table><tr><td colspan="6" class="empty-cell">No feature analysis yet.</td></tr></tbody></table></div></div>
+      </section>
+
+      <section class="view-panel" data-panel="privacy">
+        <div class="section-heading"><div><div class="eyebrow">02 / RECORD SIMILARITY SCREEN</div><h1>Does it remember<br><em>too much?</em></h1><p class="intro">A quick similarity screen flags synthetic rows that resemble records in the source.</p></div><div class="privacy-badge">LOCAL COMPUTATION<br><b>NO UPLOAD</b></div></div>
+        <div class="privacy-layout"><section class="panel privacy-main"><div class="panel-heading"><div><span class="eyebrow">SCREENING RESULTS</span><h2>Close neighbors in the source</h2></div><span class="pill" data-privacy-level>NOT RUN</span></div><div class="privacy-meter"><div class="meter-ring"><strong data-near-match>—<small>%</small></strong></div><div><b>Mean nearest-neighbor similarity</b><p>For each sampled synthetic row, the evaluator finds the closest sampled source row using normalized numeric distance and exact categorical matches.</p><span class="tiny-note">Higher similarity can warrant review. It does not establish re-identification or a formal privacy guarantee.</span></div></div><div class="privacy-stats"><div><span>Exact row matches</span><b data-exact-matches>—</b></div><div><span>Rows screened</span><b data-screen-count>—</b></div><div><span>Features compared</span><b data-screen-features>—</b></div></div><div class="privacy-result-list" data-privacy-list><div class="empty-row">Load data and run the similarity screen.</div></div></section><aside class="panel privacy-note"><span class="eyebrow">READ THIS CAREFULLY</span><h2>Similarity is a signal.</h2><p>This lightweight check is not differential privacy, an attack simulation, or a legal compliance review.</p><p>It compares at most 300 sampled records from each file in this browser. Rare categories and high-dimensional data can make simple similarity scores misleading.</p><button class="text-link" data-view-link="method">See assumptions <span>↗</span></button></aside></div>
+      </section>
+
+      <section class="view-panel" data-panel="coverage">
+        <div class="section-heading"><div><div class="eyebrow">03 / GROUP REPRESENTATION</div><h1>Who is still<br><em>in the picture?</em></h1><p class="intro">Check whether important categories remain represented at similar rates.</p></div></div>
+        <div class="panel coverage-panel"><div class="panel-heading"><div><span class="eyebrow">SUBGROUP DISTRIBUTION</span><h2>Compare a categorical feature</h2></div><label class="select-label">GROUP BY <select data-group-select><option value="">Choose a feature</option></select></label></div><div class="coverage-summary" data-coverage-summary><div class="empty-row">Choose a categorical feature after loading data.</div></div><div class="coverage-bars" data-coverage-bars></div><p class="tiny-note">Matching proportions do not prove fairness. The dataset owner must choose meaningful groups and review downstream outcomes.</p></div>
+      </section>
+
+      <section class="view-panel" data-panel="data">
+        <div class="section-heading"><div><div class="eyebrow">DATASET WORKSPACE / LOCAL ONLY</div><h1>Bring two<br><em>datasets together.</em></h1><p class="intro">Select CSV files from this device. They are parsed in your browser and never sent to a server.</p></div><button class="button button-quiet" data-load-demo>Load sample pair</button></div>
+        <div class="upload-grid"><label class="upload-card"><span class="upload-number">01</span><span class="upload-icon">↥</span><b>Source dataset</b><small>Reference records · CSV</small><input type="file" accept=".csv,text/csv" data-file="source"><span class="file-name" data-file-name="source">Customer Records.csv · demo</span></label><div class="upload-connector">⇄</div><label class="upload-card"><span class="upload-number">02</span><span class="upload-icon">↥</span><b>Synthetic dataset</b><small>Generated records · CSV</small><input type="file" accept=".csv,text/csv" data-file="synthetic"><span class="file-name" data-file-name="synthetic">Synthetic v1.csv · demo</span></label></div>
+        <div class="data-actions"><div><b>Expected: matching column names</b><span>CSV headers are used to identify comparable features. Rows are held in memory for this session only.</span></div><button class="button button-run" data-run>Run analysis <span>↗</span></button></div>
+        <div class="panel schema-panel"><div class="panel-heading"><div><span class="eyebrow">SCHEMA CHECK</span><h2>Shared features</h2></div><span class="pill" data-schema-state>DEMO DATA</span></div><div class="schema-list" data-schema-list></div></div>
+      </section>
+
+      <section class="view-panel" data-panel="method">
+        <div class="section-heading"><div><div class="eyebrow">METHOD / LIMITS / DATA HANDLING</div><h1>Useful signals.<br><em>Honest boundaries.</em></h1><p class="intro">A transparent first-pass evaluator—not a certification or a substitute for formal privacy analysis.</p></div></div>
+        <div class="method-grid"><article class="panel method-card"><span>01 / UTILITY</span><h2>Moment & proportion match</h2><p>Numeric fields compare normalized mean and standard-deviation differences. Categorical fields compare category proportions using total variation distance. Overall utility averages the per-feature similarity scores.</p></article><article class="panel method-card"><span>02 / PRIVACY</span><h2>Nearest-neighbor screen</h2><p>Compares up to 300 sampled synthetic rows with 300 sampled source rows. Numeric distances are scaled by source range; categorical matches contribute exact equality. Reports exact row overlap and average closest-record similarity.</p></article><article class="panel method-card"><span>03 / COVERAGE</span><h2>One selected group</h2><p>Compares category proportions for the selected categorical column. It highlights missing categories and changes in representation. It does not evaluate fairness or downstream performance.</p></article><article class="panel method-card"><span>04 / DATA HANDLING</span><h2>Browser session only</h2><p>CSV parsing and calculations happen in the open browser tab. Files are not uploaded. Raw rows are not saved in local storage. Closing or refreshing the tab clears uploaded data.</p></article></div>
+        <div class="limits-callout"><span>!</span><div><b>Do not treat these scores as a privacy guarantee.</b><p>This prototype does not implement differential privacy, membership-inference attacks, formal disclosure control, or a legal compliance assessment. Tiny or sensitive datasets need expert review.</p></div></div>
+        <div class="export-row"><div><span class="eyebrow">KEEP A RECORD</span><h2>Export this analysis</h2><p>Download the calculated summary, with no raw row data included.</p></div><div><button class="button button-quiet" data-export="json">Download JSON</button><button class="button button-quiet" data-export="csv">Download summary CSV</button></div></div>
+      </section>
+
+      <footer class="app-footer"><span>PRIVACY PRISM / SYNTHETIC DATA LAB</span><span>LOCAL FIRST · EXPLORATORY METRICS</span></footer>
+    </main>
+  </div>
+  <div class="toast" data-toast role="status" aria-live="polite"></div>
+  <script src="prism.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
